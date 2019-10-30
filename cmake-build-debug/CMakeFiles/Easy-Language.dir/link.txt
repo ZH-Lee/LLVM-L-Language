@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/c++  -g -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/Easy-Language.dir/main.cpp.o CMakeFiles/Easy-Language.dir/Lexer.cpp.o CMakeFiles/Easy-Language.dir/AST.cpp.o CMakeFiles/Easy-Language.dir/Parser.cpp.o CMakeFiles/Easy-Language.dir/codegen.cpp.o  -o Easy-Language 
