@@ -41,14 +41,17 @@ I refer the [LLVM Documentation](http://llvm.org/docs/tutorial/MyFirstLanguageFr
 The project structure:
 
 ```
---L Language
-	--src
-		Lexer.cpp
-		AST.cpp
-		Parse.cpp
-		main.cpp
-	--examples
-	grammar.txt
+|-- Desktop
+    |-- CMakeLists.txt
+    |-- README.md
+    |-- directoryList.md
+    |-- grammar.txt
+        |-- examples
+    |-- src
+        |-- AST.cpp
+        |-- Lexer.cpp
+        |-- Parser.cpp
+        |-- main.cpp
 ```
 
 ### Environment
