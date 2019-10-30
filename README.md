@@ -33,6 +33,11 @@ The project does not consider code genration and procedures behind.
 ### The Project Structure
 I refer the [LLVM Documentation](http://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html). So my project structure is the same as the Documentation. And add more interesting things that you cannot find in that link. Hope that, yeah? Don't worry, we will talk about that in the future.
 
+**There are something different compared to the Documentation:**
+
+* more data type
+* more straightforward, it combines C++ and Python together. 
+
 The project structure:
 
 ```
