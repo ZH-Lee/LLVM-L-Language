@@ -20,15 +20,44 @@ Let's Start :)
 
 This tutorial showing how to implement your own language step by step. Assumes that you have already know C++, you just need some basic knowledge, go deeper is better :) 
 
+
+### Basic Procedure of Compiling a program
 At first, you need to know how to compile the compiled language(like C/C++, not Python). 
 The procedure are showing below:
 
-```mermaid
-graph LR;
-　　Portal-->|发布/更新配置|Apollo配置中心;
-　　Apollo配置中心-->|实时推送|App;
-　　App-->|实时查询|Apollo配置中心;
+
+**source code** --->**Lexer** ---> **AST(Abstract Syntax Trees)** ---> **IR** --->**code generation** ---> **code optimization** --->...
+
+The project does not consider code genration and procedures behind.
+
+### The Project Structure
+I refer the [LLVM Documentation](http://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html). So my project structure is the same as the Documentation. And add more interesting things that you cannot find in that link. Hope that, yeah? Don't worry, we will talk about that in the future.
+
+The project structure:
+
+```
+--L Language
+	--src
+		Lexer.cpp
+		AST.cpp
+		Parse.cpp
+		main.cpp
+	--examples
+	grammar.txt
 ```
 
+### Environment
+```
+Device: MacOS 10.1	
+LLVM:	9.0.0
+```
 
-	
+### TODO List
+
+* Add For expression
+* Add If/else expression
+* Add more data type like int, bool, etc.
+* Add pointers
+* Add array 
+
+
