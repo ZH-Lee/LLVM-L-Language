@@ -3,44 +3,43 @@
 //
 
 #include "llvm/ADT/STLExtras.h"
-#include <algorithm>
-#include <iostream>
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <map>
-#include <unordered_map>
-#include <memory>
 #include <string>
-#include <vector>
 
+/**
+ * @brief Define reversed words or something else mentioned in grammar.txt
+ */
 enum Token {
-    tok_eof = -1,
+    tok_eof = -1,   ///< EOF means the end of files.
 
     // commands
-    tok_def = -2,
-    tok_extern = -3,
+    tok_def = -2,   ///< def used to define a function
+    tok_extern = -3,    ///< extern linkeage
 
     // primary
-    tok_identifier = -4,
-    tok_number = -5,
+    tok_identifier = -4,    ///< words expect for reserved words
+    tok_number = -5,    ///< number include int or double
 
-    tok_return = -6,
-    tok_double = -7
+    tok_return = -6,    ///< return for a function
+    tok_double = - 7   ///< define a new variable
 };
 
-std::string IdentifierStr;
+std::string IdentifierStr;  ///@var IdentifierStr will always point to the current token in std::string
 
 double NumVal;
-
+/**
+ * @brief gettok() will skip whitespace and comments, and simply separate out each word.
+ * @param
+ *
+ * @return token number
+ */
 int gettok() {
     static int LastChar = ' ';
 
-    // Skip any whitespace.
+    ///< Skip any whitespace.
     while (isspace(LastChar))
         LastChar = getchar();
 
-    if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
+    if (isalpha(LastChar)) { ///< identifier: [a-zA-Z][a-zA-Z0-9]*
         IdentifierStr = LastChar;
         while (isalnum((LastChar = getchar())))
             IdentifierStr += LastChar;
@@ -57,7 +56,7 @@ int gettok() {
         }
         return tok_identifier;
     }
-    if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
+    if (isdigit(LastChar) || LastChar == '.') { ///< Number: [0-9.]+
         std::string NumStr;
         do {
             NumStr += LastChar;
