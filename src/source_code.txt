@@ -1,8 +1,1 @@
-def f(x){
-    double i = 1;
-    if x:
-        i = i + 1;
-    else:
-        i = i + 5;
-    return i;
-}
+def f(x){ double i = 1; if x: i = i + 1; else: i = i + 5;return i;};

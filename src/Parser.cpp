@@ -13,6 +13,7 @@
 #include <system_error>
 #include <utility>
 #include <vector>
+#include <fstream>
 #include "AST.cpp"
 #include "Lexer.cpp"
 
