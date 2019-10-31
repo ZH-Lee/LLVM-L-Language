@@ -36,6 +36,7 @@ primary_expression
         |   unary Identifier
         |   return_expression
         |   variable_define_expression
+        |   if_expression
 
 variable_define_expression
         :   Type Identifier '=' primary_expression ';'
