@@ -11,16 +11,22 @@
 enum Token {
     tok_eof = -1,
 
-    // commands
     tok_def = -2,
+
     tok_extern = -3,
 
-    // primary
     tok_identifier = -4,
+
     tok_number = -5,
 
     tok_return = -6,
-    tok_double = - 7
+
+    tok_var = -7,
+
+    tok_if = -8,
+
+    tok_else = -9,
+    tok_colon = -10
 };
 
 std::string IdentifierStr;  ///IdentifierStr - This always point to the current token.
@@ -48,12 +54,17 @@ int gettok() {
             return tok_def;
         if (IdentifierStr == "extern")
             return tok_extern;
-        if (IdentifierStr == "return"){
+        if (IdentifierStr == "return")
             return tok_return;
-        }
-        if (IdentifierStr == "double"){
-            return tok_double;
-        }
+        if (IdentifierStr == "var")
+            return tok_var;
+        if (IdentifierStr == "if")
+            return tok_if;
+        if (IdentifierStr == "else")
+            return tok_else;
+        if (IdentifierStr == ":")
+            return tok_colon;
+
         return tok_identifier;
     }
     if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+

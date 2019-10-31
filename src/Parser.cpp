@@ -43,7 +43,7 @@ int GetTokPrecedence() {
 
 
 std::unique_ptr<ExprAST> ParseExpression();
-std::unique_ptr<ExprAST> ParseVarDefine();
+std::unique_ptr<ExprAST> ParseVarDefineExpr();
 
 /// numberexpr --> number
 std::unique_ptr<ExprAST> ParseNumberExpr() {
@@ -97,6 +97,33 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
+/// IfElseexpr --> if expression ':' expression else ':' expression
+std::unique_ptr<ExprAST> ParseIfElseExpr(){
+    getNextToken(); // eat if
+    auto Cond = ParseExpression();
+
+    if(!Cond)
+        return nullptr;
+    if(CurTok != ':')
+        return LogError("Expected ':' after if condition");
+    getNextToken(); // eat ':'
+
+    auto Then = ParseExpression();
+    if(!Then)
+        return nullptr;
+    getNextToken(); // eat ';'
+
+    if(CurTok != tok_else)
+        return LogError("Expected ':' after else condition");
+    getNextToken(); // eat 'else'
+    getNextToken(); // eat ':'
+    auto Else = ParseExpression();
+    if(!Else)
+        return nullptr;
+    getNextToken(); // eat ';'
+    return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(Then), std::move(Else));
+}
+
 /// primary -->
 ///   | identifierexpr
 ///   | numberexpr
@@ -104,6 +131,7 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
 std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
         default:
+            printf("%d",CurTok);
             return LogError("unknown token when expecting an expression");
         case tok_identifier:
             return ParseIdentifierExpr();
@@ -113,8 +141,10 @@ std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseParenExpr();
         case tok_return:
             return ParseIdentifierExpr();
-        case tok_double:
+        case tok_var:
             return ParseVarDefineExpr();
+        case tok_if:
+            return ParseIfElseExpr();
     }
 }
 
@@ -163,8 +193,7 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
     }
 }
 
-/// expression
-///   ::= primary binoprhs
+/// expression --> primary binoprhs
 std::unique_ptr<ExprAST> ParseExpression() {
     // This function will eat a ';' after expression.
     auto LHS = ParsePrimary();
@@ -173,8 +202,7 @@ std::unique_ptr<ExprAST> ParseExpression() {
     return ParseBinOpRHS(0, std::move(LHS));
 }
 
-/// prototype
-///   ::= id '(' id* ')'
+/// prototype --> id '(' id* ')'
 std::unique_ptr<PrototypeAST> ParsePrototype() {
     if (CurTok != tok_identifier)
         return LogErrorP("Expected function name in prototype");
@@ -200,7 +228,7 @@ std::unique_ptr<PrototypeAST> ParsePrototype() {
     return llvm::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
 
-/// definition ::= 'def' prototype expression
+/// definition --> 'def' prototype expression
 std::unique_ptr<FunctionAST> ParseDefinition() {
     getNextToken(); // eat def.
     auto Proto = ParsePrototype();
@@ -224,10 +252,9 @@ std::unique_ptr<FunctionAST> ParseDefinition() {
             return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(ExprList));
         }
     }
-    return nullptr;
 }
 
-/// toplevelexpr ::= expression
+/// toplevelexpr --> expression
 std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     if (auto E = ParseExpression()) {
         // Make an anonymous proto.
@@ -240,23 +267,20 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     return nullptr;
 }
 
-/// external ::= 'extern' prototype
+/// externalexpr --> 'extern' prototype
 std::unique_ptr<PrototypeAST> ParseExtern() {
     getNextToken(); // eat extern.
     return ParsePrototype();
 }
 
+/// VarDefineexpr  --> var Identifer '=' expression
 std::unique_ptr<ExprAST> ParseVarDefineExpr(){
-    getNextToken(); // eat 'double'
+    getNextToken(); // eat 'var'
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
     if(CurTok != tok_identifier)
         return LogError("Expected identifier when define a new variable");
 
     std::string Name = IdentifierStr;
-//    if(VarTable.count(IdentifierStr) != 0)
-//        return LogError("Redefinition of var");
-//    VarTable[IdentifierStr] = true;
-
     getNextToken(); // eat IdentifierStr
     std::unique_ptr<ExprAST> Init = nullptr;
 
@@ -275,14 +299,15 @@ std::unique_ptr<ExprAST> ParseVarDefineExpr(){
 }
 
 
+
+
 //===----------------------------------------------------------------------===//
 // Top-Level parsing
 //===----------------------------------------------------------------------===//
 
-
 static void InitializeModuleAndPassManager() {
     // Open a new module.
-    TheModule = llvm::make_unique<Module>("my cool jit", TheContext);
+    TheModule = llvm::make_unique<Module>("New Module", TheContext);
 }
 
 void HandleDefinition() {

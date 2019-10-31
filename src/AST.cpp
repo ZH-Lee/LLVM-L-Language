@@ -127,6 +127,15 @@ public:
     Function *codegen();
 };
 
+/// IfElseAST - Expression for if/else.
+class IfElseAST : public ExprAST{
+    std::unique_ptr<ExprAST> Cond, Then, Else;
+public:
+    IfElseAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST>Then,
+              std::unique_ptr<ExprAST>Else)
+              : Cond(std::move(Cond)), Then(std::move(Then)),Else(std::move(Else)) {}
+    Value *codegen() override;
+};
 
 /// LogError* - These are little helper functions for error handling.
 std::unique_ptr<ExprAST> LogError(const char *Str) {
@@ -159,9 +168,9 @@ std::map<std::string, Value *> NamedValues;
 /// CreateEntryBlockAlloca - Binding VarName with a new space, and insert into the begining of the block.
 AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
                                    const std::string &VarName) {
-    IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+    IRBuilder<> Tmp(&TheFunction->getEntryBlock(),
                      TheFunction->getEntryBlock().begin());
-    return TmpB.CreateAlloca(Type::getDoubleTy(TheContext), nullptr, VarName);
+    return Tmp.CreateAlloca(Type::getDoubleTy(TheContext), nullptr, VarName);
 }
 
 Value *LogErrorV(const char *Str) {
@@ -174,20 +183,19 @@ Value *NumberExprAST::codegen() {
     return ConstantFP::get(TheContext, APFloat(DoubleVal)); ///@todo Add more type here.
 }
 
-
 Value *VariableExprAST::codegen() {
     // Look this variable up in the function.
     Value *V = NamedValues[Name];
     if (!V)
         return LogErrorV("Unknown variable name");
-    return Builder.CreateLoad(V, Name.c_str()); // 返回变量的引用
+    return Builder.CreateLoad(V, Name.c_str()); // return ref of variable.
 }
 
 Value *BinaryExprAST::codegen() {
     if (Op == '='){
         VariableExprAST *LHSE = static_cast<VariableExprAST*> (LHS.get());
         if(!LHSE)
-            return LogErrorV("destination of '=' must be a variable");
+            return LogErrorV("right side of '=' must be a variable");
         Value *Val = RHS->codegen();
         if(!Val){
             return nullptr;
@@ -206,15 +214,15 @@ Value *BinaryExprAST::codegen() {
 
     switch (Op) {
         case '+':
-            return Builder.CreateFAdd(L, R, "addtmp");
+            return Builder.CreateFAdd(L, R, "Faddtmp");
         case '-':
-            return Builder.CreateFSub(L, R, "subtmp");
+            return Builder.CreateFSub(L, R, "Fsubtmp");
         case '*':
-            return Builder.CreateFMul(L, R, "multmp");
+            return Builder.CreateFMul(L, R, "Fmultmp");
         case '/':
-            return Builder.CreateFDiv(L, R, "divtmp");
+            return Builder.CreateFDiv(L, R, "Fdivtmp");
         case '<':
-            L = Builder.CreateFCmpULT(L, R, "cmptmp");
+            L = Builder.CreateFCmpULT(L, R, "Fcmptmp");
             // Convert bool 0/1 to double 0.0 or 1.0
             return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
         default:
@@ -223,7 +231,7 @@ Value *BinaryExprAST::codegen() {
 }
 Value *CallExprAST::codegen() {
     // Look up the name in the global module table.
-    Function *CalleeF = TheModule->getFunction(Callee); //获取函数名
+    Function *CalleeF = TheModule->getFunction(Callee);
     if (!CalleeF)
         return LogErrorV("Unknown function referenced");
 
@@ -324,3 +332,56 @@ Value *VarDefineExprAST::codegen(){
     }
     return InitVal;
 }
+
+Value *IfElseAST::codegen(){
+    Value *CondV = Cond->codegen();
+    if (!CondV)
+        return nullptr;
+
+    // Convert condition to a bool by comparing non-equal to 0.0.
+    CondV = Builder.CreateFCmpONE(
+            CondV, ConstantFP::get(TheContext, APFloat(0.0)), "ifcond");
+
+    Function *TheFunction = Builder.GetInsertBlock()->getParent();
+
+    // Create blocks for the then and else cases.  Insert the 'then' block at the
+    // end of the function.
+    BasicBlock *ThenBB = BasicBlock::Create(TheContext, "then", TheFunction);
+    BasicBlock *ElseBB = BasicBlock::Create(TheContext, "else");
+    BasicBlock *MergeBB = BasicBlock::Create(TheContext, "ifcont");
+
+    Builder.CreateCondBr(CondV, ThenBB, ElseBB);  //创建一个if的条件分之
+
+    // Emit then value.
+    Builder.SetInsertPoint(ThenBB);
+
+    Value *ThenV = Then->codegen();
+    if (!ThenV)
+        return nullptr;
+
+    Builder.CreateBr(MergeBB);    // 每个基础块都必须有分之或者return。
+    // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
+    ThenBB = Builder.GetInsertBlock();
+
+    // Emit else block.
+    TheFunction->getBasicBlockList().push_back(ElseBB);
+    Builder.SetInsertPoint(ElseBB);
+
+    Value *ElseV = Else->codegen();
+    if (!ElseV)
+        return nullptr;
+
+    Builder.CreateBr(MergeBB);
+    // Codegen of 'Else' can change the current block, update ElseBB for the PHI.
+    ElseBB = Builder.GetInsertBlock();
+
+    // Emit merge block.
+    TheFunction->getBasicBlockList().push_back(MergeBB);
+    Builder.SetInsertPoint(MergeBB);
+    PHINode *PN = Builder.CreatePHI(Type::getDoubleTy(TheContext), 2, "iftmp");
+
+    PN->addIncoming(ThenV, ThenBB);
+    PN->addIncoming(ElseV, ElseBB);
+    return PN;
+}
+

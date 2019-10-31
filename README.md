@@ -1,7 +1,9 @@
 # LLVM tutorial in C++ 
 
-This tutorial is a work in process and because my job in the future will be related with LLVM (Front-end or Back-end, whatever). And hope that this will help beginner to learn LLVM.
-Finally, i named my language as "L" language. And i will put in more interesting things. 
+This tutorial is a work in process. Beginer will learn to how to build your own
+language and i will go deeper into llvm after all basic function have been built.    
+By the way, i named my language as "L" language. 
+And i will put more interesting things in L language. 
 
 Let's Start :)
 
