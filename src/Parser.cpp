@@ -2,27 +2,6 @@
 // Created by lee on 2019-10-28.
 //
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/Optional.h"
-#include "llvm/ADT/STLExtras.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/TargetRegistry.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/Target/TargetOptions.h"
 #include <algorithm>
 #include <cassert>
 #include <cctype>
@@ -39,12 +18,12 @@
 
 using namespace llvm;
 
-
 /// CurTok/getNextToken - Provide a simple token buffer.  CurTok is the current
 /// token the parser is looking at.  getNextToken reads another token from the
 /// lexer and updates CurTok with its results.
 static int CurTok;
 static int getNextToken() { return CurTok = gettok(); }
+
 
 /// BinopPrecedence - This holds the precedence for each binary operator that is
 /// defined.
@@ -66,33 +45,31 @@ int GetTokPrecedence() {
 std::unique_ptr<ExprAST> ParseExpression();
 std::unique_ptr<ExprAST> ParseVarDefine();
 
-/// numberexpr ::= number
+/// numberexpr --> number
 std::unique_ptr<ExprAST> ParseNumberExpr() {
     auto Result = llvm::make_unique<NumberExprAST>(NumVal);
-    getNextToken(); // consume the number
+    getNextToken(); // eat the number
     return std::move(Result);
 }
 
-/// parenexpr ::= '(' expression ')'
+/// parenexpr --> '(' expression ')'
 std::unique_ptr<ExprAST> ParseParenExpr() {
-    getNextToken(); // eat (.
+    getNextToken(); // eat '('
     auto V = ParseExpression();
     if (!V)
         return nullptr;
-
     if (CurTok != ')')
         return LogError("expected ')'");
-    getNextToken(); // eat ).
+    getNextToken(); // eat ')'
     return V;
 }
 
-/// identifierexpr
-///   ::= identifier
-///   ::= identifier '(' expression* ')'
+/// identifierexpr -->
+///     identifier
+///   | identifier '(' expression* ')'
 std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     if(CurTok == tok_return) getNextToken(); // eat return;
     std::string IdName = IdentifierStr;
-    VarTable[IdentifierStr] = true;
     getNextToken(); // eat identifier.
 
     if (CurTok != '('){ // Simple variable ref.
@@ -100,7 +77,7 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     }
 
     // Call.
-    getNextToken(); // eat (
+    getNextToken(); // eat '('
     std::vector<std::unique_ptr<ExprAST>> Args;
     if (CurTok != ')') {
         while (true) {
@@ -108,26 +85,22 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
                 Args.push_back(std::move(Arg));
             else
                 return nullptr;
-
             if (CurTok == ')')
                 break;
-
             if (CurTok != ',')
-                return LogError("Expected ')' or ',' in argument list");
+                return LogError("Expected ',' in argument list");
             getNextToken();
         }
     }
 
-    // Eat the ')'.
-    getNextToken();
-
+    getNextToken(); // eat ')'.
     return llvm::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
-/// primary
-///   ::= identifierexpr
-///   ::= numberexpr
-///   ::= parenexpr
+/// primary -->
+///   | identifierexpr
+///   | numberexpr
+///   | parenexpr
 std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
         default:
@@ -141,22 +114,26 @@ std::unique_ptr<ExprAST> ParsePrimary() {
         case tok_return:
             return ParseIdentifierExpr();
         case tok_double:
-            //printf("1");
-            return ParseVarDefine();
+            return ParseVarDefineExpr();
     }
 }
 
-/// binoprhs
-///   ::= ('+' primary)*
+/// binoprhs --> ('+' primary)*
+/**
+ *
+ * @param ExprPrec
+ * @param LHS
+ * @return
+ */
 std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
-                                              std::unique_ptr<ExprAST> LHS) {
+                                        std::unique_ptr<ExprAST> LHS) {
     // If this is a binop, find its precedence.
     while (true) {
         int TokPrec = GetTokPrecedence();
 
-
         // If this is a binop that binds at least as tightly as the current binop,
-        // consume it, otherwise we are done.
+        // consume it, otherwise we are done. e.g. if this expression is a signle identifier,
+        //  then the ExprPrec equals to 0, and TokPrec now is -1, so return LHS.
         if (TokPrec < ExprPrec)
             return LHS;
 
@@ -269,7 +246,7 @@ std::unique_ptr<PrototypeAST> ParseExtern() {
     return ParsePrototype();
 }
 
-std::unique_ptr<ExprAST> ParseVarDefine(){
+std::unique_ptr<ExprAST> ParseVarDefineExpr(){
     getNextToken(); // eat 'double'
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
     if(CurTok != tok_identifier)

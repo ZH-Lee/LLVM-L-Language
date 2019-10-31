@@ -37,9 +37,12 @@
 #include <unordered_map>
 using namespace llvm;
 
-std::unordered_map<std::string, bool> VarTable;
 
-/// ExprAST - Base class for all expression nodes.
+//----------------------------------------------------------------------
+// Expression class node
+//----------------------------------------------------------------------
+
+/// ExprAST - Virutal base class for all expression nodes.
 class ExprAST {
 public:
     virtual ~ExprAST() = default;
@@ -48,7 +51,6 @@ public:
 
 
 /// NumberExprAST - Expression class for numeric literals like "1.0".
-
 class NumberExprAST : public ExprAST {
     double DoubleVal;
 public:
@@ -56,16 +58,15 @@ public:
     Value *codegen() override;
 };
 
-/// VariableExprAST - Expression class for referencing a variable, like "a". //变量
+/// VariableExprAST - Expression class for referencing a variable, like "a".
 class VariableExprAST : public ExprAST {
     std::string Name;
 
 public:
     VariableExprAST(const std::string &Name) : Name(Name){}
-    Value *codegen() override;
     const std::string &getName() const { return Name; }
+    Value *codegen() override;
 };
-
 
 
 /// BinaryExprAST - Expression class for a binary operator.
@@ -80,6 +81,7 @@ public:
     Value *codegen() override;
 };
 
+/// VarDefineExprAST - Expression class for defining a new variable.
 class VarDefineExprAST : public ExprAST {
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> Varnames;
 public:
@@ -88,7 +90,7 @@ public:
     Value *codegen() override;
 };
 
-/// CallExprAST - Expression class for function calls. 函数调用
+/// CallExprAST - Expression class for function calls.
 class CallExprAST : public ExprAST {
     std::string Callee;
     std::vector<std::unique_ptr<ExprAST>> Args;
@@ -101,7 +103,7 @@ public:
 
 /// PrototypeAST - This class represents the "prototype" for a function,
 /// which captures its name, and its argument names (thus implicitly the number
-/// of arguments the function takes). 获取函数的名字，以及参数列表
+/// of arguments the function takes).
 class PrototypeAST {
     std::string Name;
     std::vector<std::string > Args;
@@ -113,7 +115,7 @@ public:
     const std::string &getName() const { return Name; }
 };
 
-/// FunctionAST - This class represents a function definition itself. 函数定义
+/// FunctionAST - This class represents a function definition itself.
 class FunctionAST {
     std::unique_ptr<PrototypeAST> Proto;
     std::vector<std::unique_ptr<ExprAST>> Body;
@@ -149,8 +151,12 @@ std::unique_ptr<FunctionAST> LogErrorF(const char *Str) {
 LLVMContext TheContext;
 IRBuilder<> Builder(TheContext);
 std::unique_ptr<Module> TheModule;
+
+/// map the defined variable to Value*.
 std::map<std::string, Value *> NamedValues;
 
+
+/// CreateEntryBlockAlloca - Binding VarName with a new space, and insert into the begining of the block.
 AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
                                    const std::string &VarName) {
     IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
@@ -163,8 +169,9 @@ Value *LogErrorV(const char *Str) {
     return nullptr;
 }
 
+
 Value *NumberExprAST::codegen() {
-    return ConstantFP::get(TheContext, APFloat(DoubleVal));
+    return ConstantFP::get(TheContext, APFloat(DoubleVal)); ///@todo Add more type here.
 }
 
 

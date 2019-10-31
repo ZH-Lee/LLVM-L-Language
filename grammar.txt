@@ -32,21 +32,23 @@ binary_operator
 
 primary_expression
         :   (Identifier|Constant) (binary_operator (Identifier|Constant) )*
-        |   function_call '(' (Identifier)* ')'
+        |   function_call_expression
         |   unary Identifier
-        |   return Identifier ';'
+        |   return_expression
         |   variable_define_expression
 
 variable_define_expression
         :   Type Identifier '=' primary_expression ';'
 
-function_call
+function_call_expression
         :   Type Identifier '=' function_call '(' (Identifier)* ')' ';'
-        |   function_call '(' Identifier (,Identifier)* ')' ';'
+        |   Identifier '(' (Identifier)*(,Identifier)* ')' ';'
 
 
 function_define_expression
         :   def Identifier '(' Identifier (, Identifier)* ')' \
                    '{' primary_expression '}' ';'
 
+return_expression
+        :   return Identifier ';'
 

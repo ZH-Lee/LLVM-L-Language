@@ -9,21 +9,21 @@
  * @brief Define reversed words or something else mentioned in grammar.txt
  */
 enum Token {
-    tok_eof = -1,   ///< EOF means the end of files.
+    tok_eof = -1,
 
     // commands
-    tok_def = -2,   ///< def used to define a function
-    tok_extern = -3,    ///< extern linkeage
+    tok_def = -2,
+    tok_extern = -3,
 
     // primary
-    tok_identifier = -4,    ///< words expect for reserved words
-    tok_number = -5,    ///< number include int or double
+    tok_identifier = -4,
+    tok_number = -5,
 
-    tok_return = -6,    ///< return for a function
-    tok_double = - 7   ///< define a new variable
+    tok_return = -6,
+    tok_double = - 7
 };
 
-std::string IdentifierStr;  ///@var IdentifierStr will always point to the current token in std::string
+std::string IdentifierStr;  ///IdentifierStr - This always point to the current token.
 
 double NumVal;
 /**
@@ -35,11 +35,11 @@ double NumVal;
 int gettok() {
     static int LastChar = ' ';
 
-    ///< Skip any whitespace.
+    // Skip any whitespace.
     while (isspace(LastChar))
         LastChar = getchar();
 
-    if (isalpha(LastChar)) { ///< identifier: [a-zA-Z][a-zA-Z0-9]*
+    if (isalpha(LastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
         IdentifierStr = LastChar;
         while (isalnum((LastChar = getchar())))
             IdentifierStr += LastChar;
@@ -56,7 +56,7 @@ int gettok() {
         }
         return tok_identifier;
     }
-    if (isdigit(LastChar) || LastChar == '.') { ///< Number: [0-9.]+
+    if (isdigit(LastChar) || LastChar == '.') { // Number: [0-9.]+
         std::string NumStr;
         do {
             NumStr += LastChar;
