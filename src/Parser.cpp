@@ -53,7 +53,7 @@ std::unique_ptr<ExprAST> ParseNumberExpr() {
     return std::move(Result);
 }
 
-/// parenexpr --> '(' expression ')'
+/// parenexpr --> '(' expression ')' and eat '(' and ')'
 std::unique_ptr<ExprAST> ParseParenExpr() {
     getNextToken(); // eat '('
     auto V = ParseExpression();
@@ -98,32 +98,45 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
-/// IfElseexpr --> if expression ':' expression else ':' expression
+/// BodyExpr --> consume a set of expression inside the brace
+/// and eat '{' and '}'
+std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr(){
+    getNextToken(); // eat '{'
+
+    std::vector<std::unique_ptr<ExprAST>> body;
+    while(CurTok != '}'){
+        auto E = ParseExpression();
+        getNextToken(); // eat ';'
+        body.push_back(std::move(E));
+    }
+    getNextToken(); // eat '}'
+
+    return body;
+
+}
+
+/// IfElseexpr --> if parenexpr bodyexpr (else body expr)*
 std::unique_ptr<ExprAST> ParseIfElseExpr(){
     getNextToken(); // eat if
-    auto Cond = ParseExpression();
+
+    auto Cond = ParseParenExpr();
 
     if(!Cond)
         return nullptr;
-    if(CurTok != ':')
-        return LogError("Expected ':' after if condition");
-    getNextToken(); // eat ':'
+    if(CurTok != '{')
+        return LogError("Expected '{' after if condition");
 
-    auto Then = ParseExpression();
-    if(!Then)
-        return nullptr;
-    getNextToken(); // eat ';'
+    auto thenv = ParseBodyExpr();
 
     if(CurTok != tok_else)
-        return LogError("Expected ':' after else condition");
+        return LogError("Expected else condition");
+
     getNextToken(); // eat 'else'
-    getNextToken(); // eat ':'
-    auto Else = ParseExpression();
-    if(!Else)
-        return nullptr;
-    getNextToken(); // eat ';'
-    return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(Then), std::move(Else));
+    auto elsev = ParseBodyExpr();
+
+    return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv), std::move(elsev));
 }
+
 
 /// primary -->
 ///   | identifierexpr
@@ -132,7 +145,7 @@ std::unique_ptr<ExprAST> ParseIfElseExpr(){
 std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
         default:
-            printf("%d",CurTok);
+
             return LogError("unknown token when expecting an expression");
         case tok_identifier:
             return ParseIdentifierExpr();
@@ -150,12 +163,6 @@ std::unique_ptr<ExprAST> ParsePrimary() {
 }
 
 /// binoprhs --> ('+' primary)*
-/**
- *
- * @param ExprPrec
- * @param LHS
- * @return
- */
 std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
                                         std::unique_ptr<ExprAST> LHS) {
     // If this is a binop, find its precedence.
@@ -203,6 +210,9 @@ std::unique_ptr<ExprAST> ParseExpression() {
     return ParseBinOpRHS(0, std::move(LHS));
 }
 
+
+
+
 /// prototype --> id '(' id* ')'
 std::unique_ptr<PrototypeAST> ParsePrototype() {
     if (CurTok != tok_identifier)
@@ -229,7 +239,32 @@ std::unique_ptr<PrototypeAST> ParsePrototype() {
     return llvm::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
 
-/// definition --> 'def' prototype expression
+/// function definition --> 'def' prototype expression
+//std::unique_ptr<FunctionAST> ParseDefinition() {
+//    getNextToken(); // eat def.
+//    auto Proto = ParsePrototype();
+//    if (!Proto)
+//        return nullptr;
+//    if(CurTok != '{'){
+//        return LogErrorF("Expected '{' in prototype");
+//    }
+//    getNextToken(); // eat '{'
+//    std::vector<std::unique_ptr<ExprAST>> ExprList;
+//    while(true){
+//        auto E = ParseExpression();
+//        if(!E) return nullptr;
+//        ExprList.push_back(std::move(E));
+//        if (CurTok == ';' ) getNextToken(); // eat ';'
+//        if(CurTok == '}'){
+//            if(CurTok != '}'){
+//                return LogErrorF("Expected '}' in prototype");
+//            }
+//            getNextToken(); // eat '}'
+//            return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(ExprList));
+//        }
+//    }
+//}
+
 std::unique_ptr<FunctionAST> ParseDefinition() {
     getNextToken(); // eat def.
     auto Proto = ParsePrototype();
@@ -238,21 +273,9 @@ std::unique_ptr<FunctionAST> ParseDefinition() {
     if(CurTok != '{'){
         return LogErrorF("Expected '{' in prototype");
     }
-    getNextToken(); // eat '{'
-    std::vector<std::unique_ptr<ExprAST>> ExprList;
-    while(true){
-        auto E = ParseExpression();
-        if(!E) return nullptr;
-        ExprList.push_back(std::move(E));
-        if (CurTok == ';' ) getNextToken(); // eat ';'
-        if(CurTok == '}'){
-            if(CurTok != '}'){
-                return LogErrorF("Expected '}' in prototype");
-            }
-            getNextToken(); // eat '}'
-            return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(ExprList));
-        }
-    }
+    auto E = ParseBodyExpr();
+
+    return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(E));
 }
 
 /// toplevelexpr --> expression
@@ -301,7 +324,6 @@ std::unique_ptr<ExprAST> ParseVarDefineExpr(){
 
 
 
-
 //===----------------------------------------------------------------------===//
 // Top-Level parsing
 //===----------------------------------------------------------------------===//
@@ -312,6 +334,7 @@ static void InitializeModuleAndPassManager() {
 }
 
 void HandleDefinition() {
+
     if (auto FnAST = ParseDefinition()) {
         if (auto *FnIR = FnAST->codegen()) {
             fprintf(stderr, "Read function definition:");

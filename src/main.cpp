@@ -18,12 +18,13 @@ using namespace llvm;
 int main() {
     // Install standard binary operators.
     // 1 is lowest precedence.
-    BinopPrecedence['='] = 5;
-    BinopPrecedence['<'] = 20;
-    BinopPrecedence['+'] = 30;
-    BinopPrecedence['-'] = 30;
-    BinopPrecedence['*'] = 40; // highest.
-    BinopPrecedence['/'] = 40;
+    BinopPrecedence['='] = 1;
+    BinopPrecedence['<'] = 2;
+    BinopPrecedence['>'] = 2;
+    BinopPrecedence['+'] = 3;
+    BinopPrecedence['-'] = 3;
+    BinopPrecedence['*'] = 4; // highest.
+    BinopPrecedence['/'] = 4;
 
     // Prime the first token.
     fprintf(stderr, ">>> ");

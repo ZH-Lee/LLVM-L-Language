@@ -129,11 +129,22 @@ public:
 
 /// IfElseAST - Expression for if/else.
 class IfElseAST : public ExprAST{
-    std::unique_ptr<ExprAST> Cond, Then, Else;
+    std::unique_ptr<ExprAST> Cond;
+    std::vector<std::unique_ptr<ExprAST>>Then, Else;
 public:
-    IfElseAST(std::unique_ptr<ExprAST> Cond, std::unique_ptr<ExprAST>Then,
-              std::unique_ptr<ExprAST>Else)
+    IfElseAST(std::unique_ptr<ExprAST> Cond,
+                std::vector<std::unique_ptr<ExprAST>>Then,
+              std::vector<std::unique_ptr<ExprAST>> Else)
               : Cond(std::move(Cond)), Then(std::move(Then)),Else(std::move(Else)) {}
+    Value *codegen() override;
+};
+
+/// BodyExpr - Expression for a set of expression around by braces.
+class BodyExprAST : public ExprAST{
+    std::vector<std::unique_ptr<ExprAST>> Body;
+public:
+    BodyExprAST(std::vector<std::unique_ptr<ExprAST>> Body)
+            :   Body(std::move(Body)) {}
     Value *codegen() override;
 };
 
@@ -152,6 +163,9 @@ std::unique_ptr<FunctionAST> LogErrorF(const char *Str) {
     LogError(Str);
     return nullptr;
 }
+
+
+
 
 //----------------------------------------------------------------------//
 // Code generation
@@ -222,7 +236,11 @@ Value *BinaryExprAST::codegen() {
         case '/':
             return Builder.CreateFDiv(L, R, "Fdivtmp");
         case '<':
-            L = Builder.CreateFCmpULT(L, R, "Fcmptmp");
+            L = Builder.CreateFCmpULT(L, R, "Fcmpless");
+            // Convert bool 0/1 to double 0.0 or 1.0
+            return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
+        case '>':
+            L = Builder.CreateFCmpUGT(L,R,"FcmpGreater");
             // Convert bool 0/1 to double 0.0 or 1.0
             return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
         default:
@@ -266,6 +284,12 @@ Function *PrototypeAST::codegen() {
     return F;
 }
 
+Value *BodyExprAST::codegen() {
+    for(unsigned i = 0; i < Body.size(); i++){
+        Body[i]->codegen();
+    }
+    return nullptr;
+}
 
 Function *FunctionAST::codegen() {
     // First, check for an existing function from a previous 'extern' declaration.
@@ -276,7 +300,7 @@ Function *FunctionAST::codegen() {
 
     if (!TheFunction)
         return nullptr;
-
+    //printf("h1");
     // Create a new basic block to start insertion into.
     BasicBlock *BB = BasicBlock::Create(TheContext, "entry", TheFunction);
     Builder.SetInsertPoint(BB);
@@ -289,10 +313,9 @@ Function *FunctionAST::codegen() {
         Builder.CreateStore(&Arg, Alloca);
         NamedValues[Arg.getName()] = Alloca;
     }
-
+    //printf("h2");
     for(unsigned i = 0; i < Body.size() - 1; i++){
         Body[i]->codegen();
-
     }
 
     if (Value *RetVal = Body.back()->codegen()) {
@@ -334,6 +357,7 @@ Value *VarDefineExprAST::codegen(){
 }
 
 Value *IfElseAST::codegen(){
+
     Value *CondV = Cond->codegen();
     if (!CondV)
         return nullptr;
@@ -355,7 +379,11 @@ Value *IfElseAST::codegen(){
     // Emit then value.
     Builder.SetInsertPoint(ThenBB);
 
-    Value *ThenV = Then->codegen();
+    Value *ThenV;
+    for (unsigned i = 0; i < Then.size();i++){
+        ThenV = Then[i]->codegen();
+    }
+
     if (!ThenV)
         return nullptr;
 
@@ -367,9 +395,13 @@ Value *IfElseAST::codegen(){
     TheFunction->getBasicBlockList().push_back(ElseBB);
     Builder.SetInsertPoint(ElseBB);
 
-    Value *ElseV = Else->codegen();
+    Value *ElseV;
+    for (unsigned i = 0; i < Else.size();i++){
+        ElseV = Else[i]->codegen();
+    }
     if (!ElseV)
         return nullptr;
+
 
     Builder.CreateBr(MergeBB);
     // Codegen of 'Else' can change the current block, update ElseBB for the PHI.

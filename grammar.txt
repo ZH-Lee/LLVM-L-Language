@@ -52,3 +52,7 @@ function_define_expression
 return_expression
         :   return Identifier ';'
 
+if_expression
+        :   if '(' primary_expression ')' '{' primary_expression '}'
+        |   if '(' primary_expression ')' '{' primary_expression '}' \
+            else '{' primary_expression'}'

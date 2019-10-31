@@ -10,7 +10,7 @@ extern "C"{
 }
 
 int main() {
-    cout << f(0) << endl;
+    cout << f(1) << endl;
     return 0;
 }
 
