@@ -7,14 +7,14 @@ Let's Start :)
 
 ## Table of Contents
 
-*	[Chapter #1 Introduction](#chapter-1-introduction)
-	* [Basic Procedure of Compiling a program](#Basic-Procedure-of-Compiling-a-program)
-	* [The Project Structure](#the-project-structure)
-	* [Environment](#Environment)
-	* [TODO List](#TODO-List)
+*	[Chapter #1 Introduction](#chapter-1-introduction)  
+	* [Basic Procedure of Compiling a program](#Basic-Procedure-of-Compiling-a-program)  
+	* [The Project Structure](#the-project-structure)   
+	* [Environment](#Environment)   
+	* [TODO List](#TODO-List)   
 
-*	[Chapter #2 Lexer](#chater-2-Lexer)
-	* 
+*	[Chapter #2 Lexer](#chapter-2-Lexer) 
+
 
 ## Chapter #1 Introduction
 
@@ -69,3 +69,4 @@ LLVM:	9.0.0
 * Add array 
 
 
+## Chapter #2 Lexer

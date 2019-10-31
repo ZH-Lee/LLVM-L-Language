@@ -35,9 +35,10 @@ primary_expression
         |   function_call '(' (Identifier)* ')'
         |   unary Identifier
         |   return Identifier ';'
+        |   variable_define_expression
 
 variable_define_expression
-        :   Type Identifier '=' primary_expression
+        :   Type Identifier '=' primary_expression ';'
 
 function_call
         :   Type Identifier '=' function_call '(' (Identifier)* ')' ';'
@@ -45,7 +46,7 @@ function_call
 
 
 function_define_expression
-        :   def Identifier '(' Type Identifier (, Type Identifier)* ')' \
+        :   def Identifier '(' Identifier (, Identifier)* ')' \
                    '{' primary_expression '}' ';'
 
 
