@@ -231,67 +231,6 @@ Value *VarDefineExprAST::codegen(){
     }
     return InitVal;
 }
-//
-//Value *IfElseAST::codegen(){
-//
-//    Value *CondV = Cond->codegen();
-//    if (!CondV)
-//        return nullptr;
-//
-//    // Convert condition to a bool by comparing non-equal to 0.0.
-//    CondV = Builder.CreateFCmpONE(
-//            CondV, ConstantFP::get(TheContext, APFloat(0.0)), "ifcond");
-//
-//    Function *TheFunction = Builder.GetInsertBlock()->getParent();
-//
-//    // Create blocks for the then and else cases.  Insert the 'then' block at the
-//    // end of the function.
-//    BasicBlock *ThenBB = BasicBlock::Create(TheContext, "then", TheFunction);
-//    BasicBlock *ElseBB = BasicBlock::Create(TheContext, "else");
-//    BasicBlock *MergeBB = BasicBlock::Create(TheContext, "ifcont");
-//
-//    Builder.CreateCondBr(CondV, ThenBB, ElseBB);  //创建一个if的条件分之
-//
-//    // Emit then value.
-//    Builder.SetInsertPoint(ThenBB);
-//
-//    Value *ThenV = Then[0]->codegen();
-//    for (unsigned i = 1; i < Then.size();i++){
-//        ThenV = Then[i]->codegen();
-//    }
-//
-//    if (!ThenV)
-//        return nullptr;
-//
-//    Builder.CreateBr(MergeBB);    // 每个基础块都必须有分之或者return。
-//    // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
-//    ThenBB = Builder.GetInsertBlock();
-//
-//    // Emit else block.
-//    TheFunction->getBasicBlockList().push_back(ElseBB);
-//    Builder.SetInsertPoint(ElseBB);
-//
-//
-//    Value *ElseV = Else[0]->codegen();
-//    for (unsigned i = 1; i < Else.size();i++){
-//        ElseV = Else[i]->codegen();
-//    }
-//    if (!ElseV)
-//        return nullptr;
-//
-//    Builder.CreateBr(MergeBB);
-//    // Codegen of 'Else' can change the current block, update ElseBB for the PHI.
-//    ElseBB = Builder.GetInsertBlock();
-//
-//    // Emit merge block.
-//    TheFunction->getBasicBlockList().push_back(MergeBB);
-//    Builder.SetInsertPoint(MergeBB);
-//    PHINode *PN = Builder.CreatePHI(Type::getDoubleTy(TheContext), 2, "iftmp");
-//
-//    PN->addIncoming(ThenV, ThenBB);
-//    PN->addIncoming(ElseV, ElseBB);
-//    return PN;
-//}
 
 Value *IfElseAST::codegen(){
     bool has_else = false; // false means no else
