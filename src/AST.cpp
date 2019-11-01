@@ -1,6 +1,7 @@
 //
 // Created by lee on 2019-10-28.
 //
+#include "LJIT.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
@@ -15,13 +16,11 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
-#include "llvm/Target/TargetOptions.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
 #include <algorithm>
 #include <cassert>
 #include <cctype>
@@ -174,10 +173,26 @@ std::unique_ptr<FunctionAST> LogErrorF(const char *Str) {
 LLVMContext TheContext;
 IRBuilder<> Builder(TheContext);
 std::unique_ptr<Module> TheModule;
-
+std::unique_ptr<legacy::FunctionPassManager> TheFPM;
+std::unique_ptr<llvm::orc::KaleidoscopeJIT> TheJIT;
+std::map<std::string, std::unique_ptr<PrototypeAST>> FunctionProtos;
 /// map the defined variable to Value*.
 std::map<std::string, Value *> NamedValues;
 
+Function *getFunction(std::string Name) {
+    // First, see if the function has already been added to the current module.
+    if (auto *F = TheModule->getFunction(Name))
+        return F;
+
+    // If not, check whether we can codegen the declaration from some existing
+    // prototype.
+    auto FI = FunctionProtos.find(Name);
+    if (FI != FunctionProtos.end())
+        return FI->second->codegen();
+
+    // If no existing prototype exists, return null.
+    return nullptr;
+}
 
 /// CreateEntryBlockAlloca - Binding VarName with a new space, and insert into the begining of the block.
 AllocaInst *CreateEntryBlockAlloca(Function *TheFunction,
@@ -249,7 +264,7 @@ Value *BinaryExprAST::codegen() {
 }
 Value *CallExprAST::codegen() {
     // Look up the name in the global module table.
-    Function *CalleeF = TheModule->getFunction(Callee);
+    Function *CalleeF = getFunction(Callee);
     if (!CalleeF)
         return LogErrorV("Unknown function referenced");
 
@@ -293,14 +308,16 @@ Value *BodyExprAST::codegen() {
 
 Function *FunctionAST::codegen() {
     // First, check for an existing function from a previous 'extern' declaration.
-    Function *TheFunction = TheModule->getFunction(Proto->getName());
-
+    //Function *TheFunction = TheModule->getFunction(Proto->getName());
+    auto &P = *Proto;
+    FunctionProtos[Proto->getName()] = std::move(Proto);
+    Function *TheFunction = getFunction(P.getName());
     if (!TheFunction)
         TheFunction = Proto->codegen();
 
     if (!TheFunction)
         return nullptr;
-    //printf("h1");
+
     // Create a new basic block to start insertion into.
     BasicBlock *BB = BasicBlock::Create(TheContext, "entry", TheFunction);
     Builder.SetInsertPoint(BB);
@@ -313,7 +330,7 @@ Function *FunctionAST::codegen() {
         Builder.CreateStore(&Arg, Alloca);
         NamedValues[Arg.getName()] = Alloca;
     }
-    //printf("h2");
+
     for(unsigned i = 0; i < Body.size() - 1; i++){
         Body[i]->codegen();
     }
@@ -325,7 +342,7 @@ Function *FunctionAST::codegen() {
 
         // Validate the generated code, checking for consistency.
         verifyFunction(*TheFunction);
-
+        TheFPM->run(*TheFunction);
         return TheFunction;
     }
 
@@ -394,6 +411,7 @@ Value *IfElseAST::codegen(){
     // Emit else block.
     TheFunction->getBasicBlockList().push_back(ElseBB);
     Builder.SetInsertPoint(ElseBB);
+
 
     Value *ElseV;
     for (unsigned i = 0; i < Else.size();i++){

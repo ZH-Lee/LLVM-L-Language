@@ -29,6 +29,9 @@ binary_operator
         |   '*'
         |   '/'
         |   '='
+        |   '>'
+        |   '<'
+
 
 primary_expression
         :   (Identifier|Constant) (binary_operator (Identifier|Constant) )*

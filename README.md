@@ -13,6 +13,7 @@ Let's Start :)
 	* [Basic Procedure of Compiling a program](#Basic-Procedure-of-Compiling-a-program)  
 	* [The Project Structure](#the-project-structure)   
 	* [Environment](#Environment)   
+	* [Download and Use the Project](#download-and-use-the-project)  
 	* [TODO List](#TODO-List)   
 
 *	[Chapter #2 Lexer](#chapter-2-Lexer) 
@@ -35,10 +36,11 @@ The project does not consider code genration and procedures behind.
 ### The Project Structure
 I refer the [LLVM Documentation](http://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html). So my project structure is the same as the Documentation. And add more interesting things that you cannot find in that link. Hope that, yeah? Don't worry, we will talk about that in the future.
 
-**There are something different compared to the Documentation:**
+**What interesting:**
 
 * more data type
 * more straightforward, it combines C++ and Python together. 
+* learn to build your own language.
 
 The project structure:
 
@@ -46,14 +48,16 @@ The project structure:
 |-- Desktop
     |-- CMakeLists.txt
     |-- README.md
-    |-- directoryList.md
     |-- grammar.txt
-        |-- examples
+    |-- examples
+        |-- source_code.txt
     |-- src
         |-- AST.cpp
         |-- Lexer.cpp
         |-- Parser.cpp
         |-- main.cpp
+        |-- LJIT.h
+        |-- run.sh
 ```
 
 ### Environment
@@ -61,11 +65,28 @@ The project structure:
 Device: MacOS 10.1	
 LLVM:	9.0.0
 ```
+### Download and Use the project
+
+```text
+$ git clone https://github.com/ZH-Lee/LLVM-L-Language.git
+$ cd LLVM-L-Language/src
+$ sh run.sh
+
+>>> def foo(x) {var i = x+1; return i;};
+>>> Read function definition:
+   define double @foo(double %x) {
+   entry:
+     %Faddtmp = fadd double %x, 1.000000e+00
+     ret double %Faddtmp
+   }
+>>> foo(5);
+>>>  Output: 6.000000
+
+```
 
 ### TODO List
 
 * Add For expression
-* Add If/else expression
 * Add more data type like int, bool, etc.
 * Add pointers
 * Add array 

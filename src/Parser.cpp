@@ -2,18 +2,6 @@
 // Created by lee on 2019-10-28.
 //
 
-#include <algorithm>
-#include <cassert>
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <string>
-#include <system_error>
-#include <utility>
-#include <vector>
-#include <fstream>
 #include "AST.cpp"
 #include "Lexer.cpp"
 
@@ -127,10 +115,6 @@ std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
         return LogError("Expected '{' after if condition");
 
     auto thenv = ParseBodyExpr();
-
-    if(CurTok != tok_else)
-        return LogError("Expected else condition");
-
     getNextToken(); // eat 'else'
     auto elsev = ParseBodyExpr();
 
@@ -201,9 +185,9 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
     }
 }
 
-/// expression --> primary binoprhs
+/// expression --> primary binoprhs, not eat ';'
 std::unique_ptr<ExprAST> ParseExpression() {
-    // This function will eat a ';' after expression.
+
     auto LHS = ParsePrimary();
     if (!LHS)
         return nullptr;
@@ -240,31 +224,6 @@ std::unique_ptr<PrototypeAST> ParsePrototype() {
 }
 
 /// function definition --> 'def' prototype expression
-//std::unique_ptr<FunctionAST> ParseDefinition() {
-//    getNextToken(); // eat def.
-//    auto Proto = ParsePrototype();
-//    if (!Proto)
-//        return nullptr;
-//    if(CurTok != '{'){
-//        return LogErrorF("Expected '{' in prototype");
-//    }
-//    getNextToken(); // eat '{'
-//    std::vector<std::unique_ptr<ExprAST>> ExprList;
-//    while(true){
-//        auto E = ParseExpression();
-//        if(!E) return nullptr;
-//        ExprList.push_back(std::move(E));
-//        if (CurTok == ';' ) getNextToken(); // eat ';'
-//        if(CurTok == '}'){
-//            if(CurTok != '}'){
-//                return LogErrorF("Expected '}' in prototype");
-//            }
-//            getNextToken(); // eat '}'
-//            return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(ExprList));
-//        }
-//    }
-//}
-
 std::unique_ptr<FunctionAST> ParseDefinition() {
     getNextToken(); // eat def.
     auto Proto = ParsePrototype();
@@ -330,9 +289,23 @@ std::unique_ptr<ExprAST> ParseVarDefineExpr(){
 
 static void InitializeModuleAndPassManager() {
     // Open a new module.
-    TheModule = llvm::make_unique<Module>("New Module", TheContext);
-}
+    TheModule = llvm::make_unique<Module>("my cool jit", TheContext);
+    TheModule->setDataLayout(TheJIT->getTargetMachine().createDataLayout());
 
+    // Create a new pass manager attached to it.
+    TheFPM = llvm::make_unique<legacy::FunctionPassManager>(TheModule.get());
+
+    // Do simple "peephole" optimizations and bit-twiddling optzns.
+    TheFPM->add(createInstructionCombiningPass());
+    // Reassociate expressions.
+    TheFPM->add(createReassociatePass());
+    // Eliminate Common SubExpressions.
+    TheFPM->add(createGVNPass());
+    // Simplify the control flow graph (deleting unreachable blocks, etc).
+    TheFPM->add(createCFGSimplificationPass());
+
+    TheFPM->doInitialization();
+}
 void HandleDefinition() {
 
     if (auto FnAST = ParseDefinition()) {
@@ -340,6 +313,8 @@ void HandleDefinition() {
             fprintf(stderr, "Read function definition:");
             FnIR->print(errs());
             fprintf(stderr, "\n");
+            TheJIT->addModule(std::move(TheModule));
+            InitializeModuleAndPassManager();
         }
     } else {
         // Skip token for error recovery.
@@ -363,10 +338,23 @@ void HandleExtern() {
 void HandleTopLevelExpression() {
     // Evaluate a top-level expression into an anonymous function.
     if (auto FnAST = ParseTopLevelExpr()) {
-        if (auto *FnIR = FnAST->codegen()) {
-            fprintf(stderr, "Read top-level expression:");
-            FnIR->print(errs());
-            fprintf(stderr, "\n");
+        if (FnAST->codegen()) {
+            // JIT the module containing the anonymous expression, keeping a handle so
+            // we can free it later.
+            auto H = TheJIT->addModule(std::move(TheModule));
+            InitializeModuleAndPassManager();
+
+            // Search the JIT for the __anon_expr symbol.
+            auto ExprSymbol = TheJIT->findSymbol("__anon_expr");
+            assert(ExprSymbol && "Function not found");
+
+            // Get the symbol's address and cast it to the right type (takes no
+            // arguments, returns a double) so we can call it as a native function.
+            double (*FP)() = (double (*)())(intptr_t)cantFail(ExprSymbol.getAddress());
+            fprintf(stderr, "Output: %f\n", FP());
+
+            // Delete the anonymous expression module from the JIT.
+            TheJIT->removeModule(H);
         }
     } else {
         // Skip token for error recovery.
@@ -377,7 +365,7 @@ void HandleTopLevelExpression() {
 /// top ::= definition | external | expression | ';'
 void MainLoop() {
     while (true) {
-        fprintf(stderr, "ready> ");
+        fprintf(stderr, ">>> ");
         switch (CurTok) {
             case tok_eof:
                 return;
@@ -397,3 +385,20 @@ void MainLoop() {
     }
 }
 
+#ifdef _WIN32
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
+
+/// putchard - putchar that takes a double and returns 0.
+extern "C" DLLEXPORT double putchard(double X) {
+    fputc((char)X, stderr);
+    return 0;
+}
+
+/// printd - printf that takes a double prints it as "%f\n", returning 0.
+extern "C" DLLEXPORT double printd(double X) {
+    fprintf(stderr, "%f\n", X);
+    return 0;
+}
