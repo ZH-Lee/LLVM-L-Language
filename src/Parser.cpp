@@ -34,14 +34,14 @@ int GetTokPrecedence() {
 std::unique_ptr<ExprAST> ParseExpression();
 std::unique_ptr<ExprAST> ParseVarDefineExpr();
 
-/// numberexpr --> number
+/// numberexpr ::= number
 std::unique_ptr<ExprAST> ParseNumberExpr() {
     auto Result = llvm::make_unique<NumberExprAST>(NumVal);
     getNextToken(); // eat the number
     return std::move(Result);
 }
 
-/// parenexpr --> '(' expression ')' and eat '(' and ')'
+/// parenexpr ::= '(' expression ')' and eat '(' and ')'
 std::unique_ptr<ExprAST> ParseParenExpr() {
     getNextToken(); // eat '('
     auto V = ParseExpression();
@@ -53,7 +53,7 @@ std::unique_ptr<ExprAST> ParseParenExpr() {
     return V;
 }
 
-/// identifierexpr -->
+/// identifierexpr ::=
 ///     identifier
 ///   | identifier '(' expression* ')'
 std::unique_ptr<ExprAST> ParseIdentifierExpr() {
@@ -86,7 +86,7 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
-/// BodyExpr --> consume a set of expression inside the brace
+/// BodyExpr ::= consume a set of expression inside the brace
 /// and eat '{' and '}'
 std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr(){
     getNextToken(); // eat '{'
@@ -104,7 +104,11 @@ std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr(){
 
 }
 
-/// IfElseexpr --> if parenexpr bodyexpr (else body expr)*
+/// IfElseexpr ::=
+///       if parenexpr bodyexpr (else body expr)*
+///     | if parenexpr bodyexpr
+
+
 std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
     getNextToken(); // eat if
 
@@ -116,14 +120,17 @@ std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
         return LogError("Expected '{' after if condition");
 
     auto thenv = ParseBodyExpr();
-    getNextToken(); // eat 'else'
-    auto elsev = ParseBodyExpr();
-    return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv), std::move(elsev));
+    if(CurTok == tok_else){
+        getNextToken(); // eat else
+        auto elsev = ParseBodyExpr();
+        return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv), std::move(elsev));
+    }else
+        return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv));
 }
 
 
-/// primary -->
-///   | identifierexpr
+/// primary ::=
+///     identifierexpr
 ///   | numberexpr
 ///   | parenexpr
 
@@ -146,7 +153,7 @@ std::unique_ptr<ExprAST> ParsePrimary() {
     }
 }
 
-/// binoprhs --> ('+' primary)*
+/// binoprhs ::= ('+' primary)*
 std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
                                         std::unique_ptr<ExprAST> LHS) {
     // If this is a binop, find its precedence.
@@ -185,7 +192,7 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
     }
 }
 
-/// expression --> primary binoprhs, not eat ';'
+/// expression ::= primary binoprhs, not eat ';'
 std::unique_ptr<ExprAST> ParseExpression() {
 
     auto LHS = ParsePrimary();
@@ -194,7 +201,7 @@ std::unique_ptr<ExprAST> ParseExpression() {
     return ParseBinOpRHS(0, std::move(LHS));
 }
 
-/// prototype --> id '(' id* ')'
+/// prototype ::= id '(' id* ')'
 std::unique_ptr<PrototypeAST> ParsePrototype() {
     if (CurTok != tok_identifier)
         return LogErrorP("Expected function name in prototype");
@@ -220,7 +227,7 @@ std::unique_ptr<PrototypeAST> ParsePrototype() {
     return llvm::make_unique<PrototypeAST>(FnName, std::move(ArgNames));
 }
 
-/// function definition --> 'def' prototype expression
+/// function definition ::= 'def' prototype expression
 std::unique_ptr<FunctionAST> ParseDefinition() {
     getNextToken(); // eat def.
     auto Proto = ParsePrototype();
@@ -233,7 +240,7 @@ std::unique_ptr<FunctionAST> ParseDefinition() {
     return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(E));
 }
 
-/// toplevelexpr --> expression
+/// toplevelexpr ::= expression
 std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     if (auto E = ParseExpression()) {
         // Make an anonymous proto.
@@ -246,13 +253,13 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     return nullptr;
 }
 
-/// externalexpr --> 'extern' prototype
+/// externalexpr ::= 'extern' prototype
 std::unique_ptr<PrototypeAST> ParseExtern() {
     getNextToken(); // eat extern.
     return ParsePrototype();
 }
 
-/// VarDefineexpr  --> var Identifer '=' expression
+/// VarDefineexpr  ::= var Identifer '=' expression
 std::unique_ptr<ExprAST> ParseVarDefineExpr(){
     getNextToken(); // eat 'var'
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;

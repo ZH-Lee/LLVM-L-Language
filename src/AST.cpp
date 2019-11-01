@@ -119,13 +119,15 @@ public:
 class IfElseAST : public ExprAST{
     std::unique_ptr<ExprAST> Cond;
     std::vector<std::unique_ptr<ExprAST>>Then, Else;
-    bool HasElse, Nested_ifelse;
+
 public:
     IfElseAST(std::unique_ptr<ExprAST> Cond,
                 std::vector<std::unique_ptr<ExprAST>>Then,
               std::vector<std::unique_ptr<ExprAST>> Else)
-              : Cond(std::move(Cond)), Then(std::move(Then)),Else(std::move(Else)) {}
-
+              : Cond(std::move(Cond)), Then(std::move(Then)), Else(std::move(Else)) {}
+    IfElseAST(std::unique_ptr<ExprAST> Cond,
+              std::vector<std::unique_ptr<ExprAST>>Then)
+            : Cond(std::move(Cond)), Then(std::move(Then)) {}
     Value *codegen() override;
 };
 
