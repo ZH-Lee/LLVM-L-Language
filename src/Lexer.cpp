@@ -26,6 +26,7 @@ enum Token {
 
     tok_else = -9,
 
+    tok_for = -10
 };
 
 std::string IdentifierStr;  ///IdentifierStr - This always point to the current token.
@@ -61,6 +62,8 @@ int gettok() {
             return tok_if;
         if (IdentifierStr == "else")
             return tok_else;
+        if (IdentifierStr == "for")
+            return tok_for;
 
         return tok_identifier;
     }

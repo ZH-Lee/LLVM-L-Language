@@ -48,10 +48,10 @@ RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/lees/Desktop/Easy-Language
+CMAKE_SOURCE_DIR = /Users/lees/Desktop/LLVM-L-Language
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/lees/Desktop/Easy-Language/cmake-build-debug
+CMAKE_BINARY_DIR = /Users/lees/Desktop/LLVM-L-Language/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lees/Desktop/Easy-Language/cmake-build-debug/CMakeFiles /Users/lees/Desktop/Easy-Language/cmake-build-debug/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lees/Desktop/LLVM-L-Language/cmake-build-debug/CMakeFiles /Users/lees/Desktop/LLVM-L-Language/cmake-build-debug/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lees/Desktop/Easy-Language/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/lees/Desktop/LLVM-L-Language/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -111,152 +111,152 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Easy-Language
+# Target rules for targets named LLVM-L-Language
 
 # Build rule for target.
-Easy-Language: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 Easy-Language
-.PHONY : Easy-Language
+LLVM-L-Language: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 LLVM-L-Language
+.PHONY : LLVM-L-Language
 
 # fast build rule for target.
-Easy-Language/fast:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/build
-.PHONY : Easy-Language/fast
+LLVM-L-Language/fast:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/build
+.PHONY : LLVM-L-Language/fast
 
-AST.o: AST.cpp.o
+src/AST.o: src/AST.cpp.o
 
-.PHONY : AST.o
-
-# target to build an object file
-AST.cpp.o:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/AST.cpp.o
-.PHONY : AST.cpp.o
-
-AST.i: AST.cpp.i
-
-.PHONY : AST.i
-
-# target to preprocess a source file
-AST.cpp.i:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/AST.cpp.i
-.PHONY : AST.cpp.i
-
-AST.s: AST.cpp.s
-
-.PHONY : AST.s
-
-# target to generate assembly for a file
-AST.cpp.s:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/AST.cpp.s
-.PHONY : AST.cpp.s
-
-Lexer.o: Lexer.cpp.o
-
-.PHONY : Lexer.o
+.PHONY : src/AST.o
 
 # target to build an object file
-Lexer.cpp.o:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/Lexer.cpp.o
-.PHONY : Lexer.cpp.o
+src/AST.cpp.o:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/AST.cpp.o
+.PHONY : src/AST.cpp.o
 
-Lexer.i: Lexer.cpp.i
+src/AST.i: src/AST.cpp.i
 
-.PHONY : Lexer.i
+.PHONY : src/AST.i
 
 # target to preprocess a source file
-Lexer.cpp.i:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/Lexer.cpp.i
-.PHONY : Lexer.cpp.i
+src/AST.cpp.i:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/AST.cpp.i
+.PHONY : src/AST.cpp.i
 
-Lexer.s: Lexer.cpp.s
+src/AST.s: src/AST.cpp.s
 
-.PHONY : Lexer.s
+.PHONY : src/AST.s
 
 # target to generate assembly for a file
-Lexer.cpp.s:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/Lexer.cpp.s
-.PHONY : Lexer.cpp.s
+src/AST.cpp.s:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/AST.cpp.s
+.PHONY : src/AST.cpp.s
 
-Parser.o: Parser.cpp.o
+src/Codegen.o: src/Codegen.cpp.o
 
-.PHONY : Parser.o
+.PHONY : src/Codegen.o
 
 # target to build an object file
-Parser.cpp.o:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/Parser.cpp.o
-.PHONY : Parser.cpp.o
+src/Codegen.cpp.o:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Codegen.cpp.o
+.PHONY : src/Codegen.cpp.o
 
-Parser.i: Parser.cpp.i
+src/Codegen.i: src/Codegen.cpp.i
 
-.PHONY : Parser.i
+.PHONY : src/Codegen.i
 
 # target to preprocess a source file
-Parser.cpp.i:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/Parser.cpp.i
-.PHONY : Parser.cpp.i
+src/Codegen.cpp.i:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Codegen.cpp.i
+.PHONY : src/Codegen.cpp.i
 
-Parser.s: Parser.cpp.s
+src/Codegen.s: src/Codegen.cpp.s
 
-.PHONY : Parser.s
+.PHONY : src/Codegen.s
 
 # target to generate assembly for a file
-Parser.cpp.s:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/Parser.cpp.s
-.PHONY : Parser.cpp.s
+src/Codegen.cpp.s:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Codegen.cpp.s
+.PHONY : src/Codegen.cpp.s
 
-codegen.o: codegen.cpp.o
+src/Lexer.o: src/Lexer.cpp.o
 
-.PHONY : codegen.o
+.PHONY : src/Lexer.o
 
 # target to build an object file
-codegen.cpp.o:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/codegen.cpp.o
-.PHONY : codegen.cpp.o
+src/Lexer.cpp.o:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Lexer.cpp.o
+.PHONY : src/Lexer.cpp.o
 
-codegen.i: codegen.cpp.i
+src/Lexer.i: src/Lexer.cpp.i
 
-.PHONY : codegen.i
+.PHONY : src/Lexer.i
 
 # target to preprocess a source file
-codegen.cpp.i:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/codegen.cpp.i
-.PHONY : codegen.cpp.i
+src/Lexer.cpp.i:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Lexer.cpp.i
+.PHONY : src/Lexer.cpp.i
 
-codegen.s: codegen.cpp.s
+src/Lexer.s: src/Lexer.cpp.s
 
-.PHONY : codegen.s
+.PHONY : src/Lexer.s
 
 # target to generate assembly for a file
-codegen.cpp.s:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/codegen.cpp.s
-.PHONY : codegen.cpp.s
+src/Lexer.cpp.s:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Lexer.cpp.s
+.PHONY : src/Lexer.cpp.s
 
-main.o: main.cpp.o
+src/Parser.o: src/Parser.cpp.o
 
-.PHONY : main.o
+.PHONY : src/Parser.o
 
 # target to build an object file
-main.cpp.o:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/main.cpp.o
-.PHONY : main.cpp.o
+src/Parser.cpp.o:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Parser.cpp.o
+.PHONY : src/Parser.cpp.o
 
-main.i: main.cpp.i
+src/Parser.i: src/Parser.cpp.i
 
-.PHONY : main.i
+.PHONY : src/Parser.i
 
 # target to preprocess a source file
-main.cpp.i:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/main.cpp.i
-.PHONY : main.cpp.i
+src/Parser.cpp.i:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Parser.cpp.i
+.PHONY : src/Parser.cpp.i
 
-main.s: main.cpp.s
+src/Parser.s: src/Parser.cpp.s
 
-.PHONY : main.s
+.PHONY : src/Parser.s
 
 # target to generate assembly for a file
-main.cpp.s:
-	$(MAKE) -f CMakeFiles/Easy-Language.dir/build.make CMakeFiles/Easy-Language.dir/main.cpp.s
-.PHONY : main.cpp.s
+src/Parser.cpp.s:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/Parser.cpp.s
+.PHONY : src/Parser.cpp.s
+
+src/main.o: src/main.cpp.o
+
+.PHONY : src/main.o
+
+# target to build an object file
+src/main.cpp.o:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/main.cpp.o
+.PHONY : src/main.cpp.o
+
+src/main.i: src/main.cpp.i
+
+.PHONY : src/main.i
+
+# target to preprocess a source file
+src/main.cpp.i:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/main.cpp.i
+.PHONY : src/main.cpp.i
+
+src/main.s: src/main.cpp.s
+
+.PHONY : src/main.s
+
+# target to generate assembly for a file
+src/main.cpp.s:
+	$(MAKE) -f CMakeFiles/LLVM-L-Language.dir/build.make CMakeFiles/LLVM-L-Language.dir/src/main.cpp.s
+.PHONY : src/main.cpp.s
 
 # Help Target
 help:
@@ -266,22 +266,22 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... Easy-Language"
-	@echo "... AST.o"
-	@echo "... AST.i"
-	@echo "... AST.s"
-	@echo "... Lexer.o"
-	@echo "... Lexer.i"
-	@echo "... Lexer.s"
-	@echo "... Parser.o"
-	@echo "... Parser.i"
-	@echo "... Parser.s"
-	@echo "... codegen.o"
-	@echo "... codegen.i"
-	@echo "... codegen.s"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
+	@echo "... LLVM-L-Language"
+	@echo "... src/AST.o"
+	@echo "... src/AST.i"
+	@echo "... src/AST.s"
+	@echo "... src/Codegen.o"
+	@echo "... src/Codegen.i"
+	@echo "... src/Codegen.s"
+	@echo "... src/Lexer.o"
+	@echo "... src/Lexer.i"
+	@echo "... src/Lexer.s"
+	@echo "... src/Parser.o"
+	@echo "... src/Parser.i"
+	@echo "... src/Parser.s"
+	@echo "... src/main.o"
+	@echo "... src/main.i"
+	@echo "... src/main.s"
 .PHONY : help
 
 

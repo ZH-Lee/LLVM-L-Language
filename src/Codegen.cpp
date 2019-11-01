@@ -1,8 +1,6 @@
 //
 // Created by lee on 2019-11-01.
 //
-
-
 #include "LJIT.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/Optional.h"
@@ -280,7 +278,6 @@ Value *IfElseAST::codegen(){
     }
     if (!ElseV)
         return nullptr;
-
 
     Builder.CreateBr(MergeBB);
     // Codegen of 'Else' can change the current block, update ElseBB for the PHI.

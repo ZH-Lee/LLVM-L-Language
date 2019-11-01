@@ -81,7 +81,7 @@ $ sh run.sh
      ret double %Faddtmp
    }
 >>> foo(5);
->>>  Output: 6.000000
+>>> 6.000000
 
 ```
 
