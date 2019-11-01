@@ -2,7 +2,7 @@
 // Created by lee on 2019-10-28.
 //
 
-#include "AST.cpp"
+#include "Codegen.cpp"
 #include "Lexer.cpp"
 
 using namespace llvm;
@@ -94,8 +94,9 @@ std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr(){
     std::vector<std::unique_ptr<ExprAST>> body;
     while(CurTok != '}'){
         auto E = ParseExpression();
-        getNextToken(); // eat ';'
         body.push_back(std::move(E));
+        if(CurTok == ';' )
+            getNextToken(); // eat ';'
     }
     getNextToken(); // eat '}'
 
@@ -117,7 +118,6 @@ std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
     auto thenv = ParseBodyExpr();
     getNextToken(); // eat 'else'
     auto elsev = ParseBodyExpr();
-
     return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv), std::move(elsev));
 }
 
@@ -126,10 +126,10 @@ std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
 ///   | identifierexpr
 ///   | numberexpr
 ///   | parenexpr
+
 std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
         default:
-
             return LogError("unknown token when expecting an expression");
         case tok_identifier:
             return ParseIdentifierExpr();
@@ -194,9 +194,6 @@ std::unique_ptr<ExprAST> ParseExpression() {
     return ParseBinOpRHS(0, std::move(LHS));
 }
 
-
-
-
 /// prototype --> id '(' id* ')'
 std::unique_ptr<PrototypeAST> ParsePrototype() {
     if (CurTok != tok_identifier)
@@ -233,7 +230,6 @@ std::unique_ptr<FunctionAST> ParseDefinition() {
         return LogErrorF("Expected '{' in prototype");
     }
     auto E = ParseBodyExpr();
-
     return llvm::make_unique<FunctionAST>(std::move(Proto), std::move(E));
 }
 
@@ -281,8 +277,6 @@ std::unique_ptr<ExprAST> ParseVarDefineExpr(){
     return llvm::make_unique<VarDefineExprAST> (std::move(VarNames));
 }
 
-
-
 //===----------------------------------------------------------------------===//
 // Top-Level parsing
 //===----------------------------------------------------------------------===//
@@ -309,7 +303,9 @@ static void InitializeModuleAndPassManager() {
 void HandleDefinition() {
 
     if (auto FnAST = ParseDefinition()) {
+
         if (auto *FnIR = FnAST->codegen()) {
+
             fprintf(stderr, "Read function definition:");
             FnIR->print(errs());
             fprintf(stderr, "\n");
