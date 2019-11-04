@@ -75,16 +75,16 @@ Value *VariableExprAST::codegen() {
 }
 
 Value *BinaryExprAST::codegen() {
-    if (Op == '='){
-        VariableExprAST *LHSE = static_cast<VariableExprAST*> (LHS.get());
-        if(!LHSE)
+    if (Op == '=') {
+        VariableExprAST *LHSE = static_cast<VariableExprAST *> (LHS.get());
+        if (!LHSE)
             return LogErrorV("right side of '=' must be a variable");
         Value *Val = RHS->codegen();
-        if(!Val){
+        if (!Val) {
             return nullptr;
         }
         Value *Variable = NamedValues[LHSE->getName()];
-        if(!Variable)
+        if (!Variable)
             return LogErrorV("Unknown variable name");
         Builder.CreateStore(Val, Variable);
         return Val;
@@ -109,13 +109,14 @@ Value *BinaryExprAST::codegen() {
             // Convert bool 0/1 to double 0.0 or 1.0
             return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
         case '>':
-            L = Builder.CreateFCmpUGT(L,R,"FcmpGreater");
+            L = Builder.CreateFCmpUGT(L, R, "FcmpGreater");
             // Convert bool 0/1 to double 0.0 or 1.0
             return Builder.CreateUIToFP(L, Type::getDoubleTy(TheContext), "booltmp");
         default:
             return LogErrorV("invalid binary operator");
     }
 }
+
 Value *CallExprAST::codegen() {
     // Look up the name in the global module table.
     Function *CalleeF = getFunction(Callee);
@@ -154,7 +155,7 @@ Function *PrototypeAST::codegen() {
 }
 
 Value *BodyExprAST::codegen() {
-    for(unsigned i = 0; i < Body.size(); i++){
+    for (unsigned i = 0; i < Body.size(); i++) {
         Body[i]->codegen();
     }
     return nullptr;
@@ -183,14 +184,14 @@ Function *FunctionAST::codegen() {
     // Record the function arguments in the NamedValues map.
 
     NamedValues.clear();
-    for (auto &Arg : TheFunction->args()){
+    for (auto &Arg : TheFunction->args()) {
         AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, Arg.getName());
         Builder.CreateStore(&Arg, Alloca);
         NamedValues[Arg.getName()] = Alloca;
     }
 
     // generating code
-    for(unsigned i = 0; i < Body.size() - 1; i++){
+    for (unsigned i = 0; i < Body.size() - 1; i++) {
         Body[i]->codegen();
     }
 
@@ -201,7 +202,7 @@ Function *FunctionAST::codegen() {
 
         // Validate the generated code, checking for consistency.
         verifyFunction(*TheFunction);
-        TheFPM->run(*TheFunction);
+        //TheFPM->run(*TheFunction);
         return TheFunction;
     }
 
@@ -210,20 +211,20 @@ Function *FunctionAST::codegen() {
     return nullptr;
 }
 
-Value *VarDefineExprAST::codegen(){
+Value *VarDefineExprAST::codegen() {
     Function *TheFunction = Builder.GetInsertBlock()->getParent();
     Value *InitVal;
 
-    for(unsigned i = 0, e = Varnames.size();i!=e;i++){
+    for (unsigned i = 0, e = Varnames.size(); i != e; i++) {
         const std::string &Varname = Varnames[i].first;
 
         ExprAST *Init = Varnames[i].second.get();
 
-        if(Init) {
+        if (Init) {
             InitVal = Init->codegen();
             if (!InitVal)
                 return nullptr;
-        }else
+        } else
             InitVal = ConstantFP::get(TheContext, APFloat(0.0));
         AllocaInst *Alloca = CreateEntryBlockAlloca(TheFunction, Varname);
         Builder.CreateStore(InitVal, Alloca);
@@ -232,9 +233,9 @@ Value *VarDefineExprAST::codegen(){
     return InitVal;
 }
 
-Value *IfElseAST::codegen(){
+Value *IfElseAST::codegen() {
     bool has_else = false; // false means no else
-    if(!Else.empty()) has_else = true;
+    if (!Else.empty()) has_else = true;
     Value *CondV = Cond->codegen();
     if (!CondV)
         return nullptr;
@@ -249,28 +250,26 @@ Value *IfElseAST::codegen(){
     // end of the function.
     BasicBlock *ThenBB = BasicBlock::Create(TheContext, "then", TheFunction);
     BasicBlock *ResidualBB, *ElseBB, *MergeBB;
-    if(has_else){
+    if (has_else) {
         ElseBB = BasicBlock::Create(TheContext, "else");
         MergeBB = BasicBlock::Create(TheContext, "ifcont");
         Builder.CreateCondBr(CondV, ThenBB, ElseBB);
-    }else {
+    } else {
         ResidualBB = BasicBlock::Create(TheContext, "residual", TheFunction);
         Builder.CreateCondBr(CondV, ThenBB, ResidualBB);
     }
-
-
 
     // Emit then value.
     Builder.SetInsertPoint(ThenBB);
 
     Value *ThenV = Then[0]->codegen();
-    for (unsigned i = 1; i < Then.size();i++){
+    for (unsigned i = 1; i < Then.size(); i++) {
         ThenV = Then[i]->codegen();
     }
 
     if (!ThenV)
         return nullptr;
-    if(!has_else){
+    if (!has_else) {
         Builder.CreateBr(ResidualBB);
         Builder.SetInsertPoint(ResidualBB);
         return Constant::getNullValue(Type::getDoubleTy(TheContext));
@@ -283,7 +282,7 @@ Value *IfElseAST::codegen(){
     Builder.SetInsertPoint(ElseBB);
 
     Value *ElseV = Else[0]->codegen();
-    for (unsigned i = 1; i < Else.size();i++){
+    for (unsigned i = 1; i < Else.size(); i++) {
         ElseV = Else[i]->codegen();
     }
     if (!ElseV)
@@ -303,5 +302,82 @@ Value *IfElseAST::codegen(){
     return PN;
 }
 
+Value *ForExprAST::codegen() {
+    // Emit the start code first, without 'variable' in scope.
+    Value *StartVal = Start->codegen();
+    if (!StartVal)
+        return nullptr;
 
+    Function *TheFunction = Builder.GetInsertBlock()->getParent();
+
+    BasicBlock *EntryBB = Builder.GetInsertBlock(); // Get entry block
+
+    // InitBB - The block that initializing loop variable
+    BasicBlock *InitBB = BasicBlock::Create(TheContext, "loop", TheFunction);
+
+    // Branch into InitBB
+    Builder.CreateBr(InitBB);
+
+    // Now, builder is inside the InitBB
+    Builder.SetInsertPoint(InitBB);
+
+    // Start the PHI node with an entry for StartVal.
+    PHINode *Variable =
+            Builder.CreatePHI(Type::getDoubleTy(TheContext), 2, VarName);
+    Variable->addIncoming(StartVal, EntryBB);
+
+    Value *OldVal = NamedValues[VarName];
+    NamedValues[VarName] = Variable;
+
+    Value *EndCond = End->codegen();
+    if (!EndCond)
+        return nullptr;
+
+    // Comparing variable to endVar
+    EndCond = Builder.CreateFCmpULT(Variable, EndCond, "loopcond");
+
+    // Create the "after loop" block and insert it.
+    BasicBlock *loopBB  = BasicBlock::Create(TheContext, "loop",TheFunction);
+
+    BasicBlock *AfterBB =
+            BasicBlock::Create(TheContext, "afterloop", TheFunction);
+
+    Builder.CreateCondBr(EndCond, loopBB, AfterBB);
+
+    Builder.SetInsertPoint(loopBB);
+
+    for (unsigned i = 0; i < Body.size();i++){
+        Body[i]->codegen();
+    }
+
+    // Emit the step value.
+    Value *StepVal = nullptr;
+    if (Step) {
+        StepVal = Step->codegen();
+        if (!StepVal)
+            return nullptr;
+    } else {
+        // If not specified, use 1.0.
+        StepVal = ConstantFP::get(TheContext, APFloat(1.0));
+    }
+
+    // update variable
+    Value *NextVar = Builder.CreateFAdd(Variable, StepVal, "nextvar");
+
+    Builder.CreateBr(InitBB);
+
+    Builder.SetInsertPoint(AfterBB);
+
+    // Add a new entry to the PHI node for the backedge.
+    Variable->addIncoming(NextVar, loopBB);
+
+    // Restore the OldVal or erase it due to the outer scope doesn't have the variable.
+    if (OldVal)
+        NamedValues[VarName] = OldVal;
+    else
+        NamedValues.erase(VarName);
+
+    // for expr always returns 0.0.
+    return Constant::getNullValue(Type::getDoubleTy(TheContext));
+}
 

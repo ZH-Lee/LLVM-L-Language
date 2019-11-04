@@ -11,6 +11,7 @@ using namespace llvm;
 /// token the parser is looking at.  getNextToken reads another token from the
 /// lexer and updates CurTok with its results.
 static int CurTok;
+
 static int getNextToken() { return CurTok = gettok(); }
 
 
@@ -32,6 +33,7 @@ int GetTokPrecedence() {
 
 
 std::unique_ptr<ExprAST> ParseExpression();
+
 std::unique_ptr<ExprAST> ParseVarDefineExpr();
 
 /// numberexpr ::= number
@@ -57,11 +59,11 @@ std::unique_ptr<ExprAST> ParseParenExpr() {
 ///     identifier
 ///   | identifier '(' expression* ')'
 std::unique_ptr<ExprAST> ParseIdentifierExpr() {
-    if(CurTok == tok_return) getNextToken(); // eat return;
+    if (CurTok == tok_return) getNextToken(); // eat return;
     std::string IdName = IdentifierStr;
     getNextToken(); // eat identifier.
 
-    if (CurTok != '('){ // Simple variable ref.
+    if (CurTok != '(') { // Simple variable ref.
         return llvm::make_unique<VariableExprAST>(IdName);
     }
 
@@ -86,16 +88,17 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     return llvm::make_unique<CallExprAST>(IdName, std::move(Args));
 }
 
-/// BodyExpr ::= consume a set of expression inside the brace
+/// BodyExpr ::= '{' (primary expr)* '}'
+/// consume a set of expression inside the brace
 /// and eat '{' and '}'
-std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr(){
+std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr() {
     getNextToken(); // eat '{'
 
     std::vector<std::unique_ptr<ExprAST>> body;
-    while(CurTok != '}'){
+    while (CurTok != '}') {
         auto E = ParseExpression();
         body.push_back(std::move(E));
-        if(CurTok == ';' )
+        if (CurTok == ';')
             getNextToken(); // eat ';'
     }
     getNextToken(); // eat '}'
@@ -105,30 +108,61 @@ std::vector<std::unique_ptr<ExprAST>> ParseBodyExpr(){
 }
 
 /// IfElseexpr ::=
-///       if parenexpr bodyexpr (else body expr)*
+///       if parenexpr bodyexpr (else bodyexpr)*
 ///     | if parenexpr bodyexpr
 
-
-std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
+std::unique_ptr<ExprAST> ParseIfElseExpr() { ///@todo Add recursive if expr.
     getNextToken(); // eat if
 
     auto Cond = ParseParenExpr();
 
-    if(!Cond)
+    if (!Cond)
         return nullptr;
-    if(CurTok != '{')
+    if (CurTok != '{')
         return LogError("Expected '{' after if condition");
 
     auto thenv = ParseBodyExpr();
-    if(CurTok == tok_else){
+    if (CurTok == tok_else) {
         getNextToken(); // eat else
         auto elsev = ParseBodyExpr();
-        return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv), std::move(elsev));
-    }else
-        return llvm::make_unique<IfElseAST> (std::move(Cond),std::move(thenv));
+        return llvm::make_unique<IfElseAST>(std::move(Cond), std::move(thenv), std::move(elsev));
+    } else
+        return llvm::make_unique<IfElseAST>(std::move(Cond), std::move(thenv));
 }
 
+/// Forexpr ::=
+///         for identifier in (start, end, step) bodyexpr
+std::unique_ptr<ExprAST> ParseForExpr() {
+    getNextToken(); // eat for
 
+    std::string IdName = IdentifierStr;
+    getNextToken(); // eat id
+
+    getNextToken(); // eat in
+    getNextToken(); // eat '('
+
+    auto start = ParseExpression();
+    if(!start)
+        return nullptr;
+    getNextToken(); // eat ','
+
+    auto end = ParseExpression();
+    if(!end)
+        return nullptr;
+    std::unique_ptr<ExprAST> step = nullptr;
+    if (CurTok == ',') {
+        getNextToken(); // eat ','
+        step = ParseExpression();
+        if (!step)
+            return nullptr;
+    }
+    getNextToken(); // eat ')'
+
+    auto body = ParseBodyExpr();
+    return llvm::make_unique<ForExprAST>(IdName, std::move(start), std::move(end),
+                                         std::move(step), std::move(body));
+
+}
 /// primary ::=
 ///     identifierexpr
 ///   | numberexpr
@@ -137,6 +171,7 @@ std::unique_ptr<ExprAST> ParseIfElseExpr(){ ///@todo Add recursive if expr.
 std::unique_ptr<ExprAST> ParsePrimary() {
     switch (CurTok) {
         default:
+
             return LogError("unknown token when expecting an expression");
         case tok_identifier:
             return ParseIdentifierExpr();
@@ -150,12 +185,14 @@ std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseVarDefineExpr();
         case tok_if:
             return ParseIfElseExpr();
+        case tok_for:
+            return ParseForExpr();
     }
 }
 
 /// binoprhs ::= ('+' primary)*
 std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
-                                        std::unique_ptr<ExprAST> LHS) {
+                                       std::unique_ptr<ExprAST> LHS) {
     // If this is a binop, find its precedence.
     while (true) {
         int TokPrec = GetTokPrecedence();
@@ -178,7 +215,7 @@ std::unique_ptr<ExprAST> ParseBinOpRHS(int ExprPrec,
 
         // If BinOp binds less tightly with RHS than the operator after RHS, let
         // the pending operator take RHS as its LHS.
-        if(CurTok != ';'){
+        if (CurTok != ';') {
             int NextPrec = GetTokPrecedence();
             if (TokPrec < NextPrec) {
                 RHS = ParseBinOpRHS(TokPrec + 1, std::move(RHS));
@@ -214,10 +251,10 @@ std::unique_ptr<PrototypeAST> ParsePrototype() {
 
     std::vector<std::string> ArgNames;
     getNextToken();
-    while (CurTok == tok_identifier){
+    while (CurTok == tok_identifier) {
         ArgNames.push_back(IdentifierStr);
         getNextToken(); // eat 'IdentifierStr'
-        if(CurTok==')') break;
+        if (CurTok == ')') break;
         getNextToken(); // eat ','
     }
     if (CurTok != ')')
@@ -233,7 +270,7 @@ std::unique_ptr<FunctionAST> ParseDefinition() {
     auto Proto = ParsePrototype();
     if (!Proto)
         return nullptr;
-    if(CurTok != '{'){
+    if (CurTok != '{') {
         return LogErrorF("Expected '{' in prototype");
     }
     auto E = ParseBodyExpr();
@@ -260,28 +297,28 @@ std::unique_ptr<PrototypeAST> ParseExtern() {
 }
 
 /// VarDefineexpr  ::= var Identifer '=' expression
-std::unique_ptr<ExprAST> ParseVarDefineExpr(){
+std::unique_ptr<ExprAST> ParseVarDefineExpr() {
     getNextToken(); // eat 'var'
     std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> VarNames;
-    if(CurTok != tok_identifier)
+    if (CurTok != tok_identifier)
         return LogError("Expected identifier when define a new variable");
 
     std::string Name = IdentifierStr;
     getNextToken(); // eat IdentifierStr
     std::unique_ptr<ExprAST> Init = nullptr;
 
-    if(CurTok == '='){
+    if (CurTok == '=') {
         getNextToken(); // eat '='
         Init = ParseExpression();
-        if(!Init)
+        if (!Init)
             return nullptr;
     }
     VarNames.push_back(std::make_pair(Name, std::move(Init)));
 
-    if(CurTok != ';')
+    if (CurTok != ';')
         return LogError("Expected ';' for end the var definition ");
 
-    return llvm::make_unique<VarDefineExprAST> (std::move(VarNames));
+    return llvm::make_unique<VarDefineExprAST>(std::move(VarNames));
 }
 
 //===----------------------------------------------------------------------===//
@@ -307,6 +344,7 @@ static void InitializeModuleAndPassManager() {
 
     TheFPM->doInitialization();
 }
+
 void HandleDefinition() {
 
     if (auto FnAST = ParseDefinition()) {
@@ -353,7 +391,7 @@ void HandleTopLevelExpression() {
 
             // Get the symbol's address and cast it to the right type (takes no
             // arguments, returns a double) so we can call it as a native function.
-            double (*FP)() = (double (*)())(intptr_t)cantFail(ExprSymbol.getAddress());
+            double (*FP)() = (double (*)()) (intptr_t) cantFail(ExprSymbol.getAddress());
             fprintf(stderr, "%f\n", FP());
 
             // Delete the anonymous expression module from the JIT.
@@ -396,7 +434,7 @@ void MainLoop() {
 
 /// putchard - putchar that takes a double and returns 0.
 extern "C" DLLEXPORT double putchard(double X) {
-    fputc((char)X, stderr);
+    fputc((char) X, stderr);
     return 0;
 }
 

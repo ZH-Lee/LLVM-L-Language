@@ -26,12 +26,13 @@ enum Token {
 
     tok_else = -9,
 
-    tok_for = -10
+    tok_for = -10,
+    tok_in = -11
 };
 
 std::string IdentifierStr;  ///IdentifierStr - This always point to the current token.
-
 double NumVal;
+
 /**
  * @brief gettok() will skip whitespace and comments, and simply separate out each word.
  * @param
@@ -49,7 +50,6 @@ int gettok() {
         IdentifierStr = LastChar;
         while (isalnum((LastChar = getchar())))
             IdentifierStr += LastChar;
-
         if (IdentifierStr == "def")
             return tok_def;
         if (IdentifierStr == "extern")
@@ -64,6 +64,8 @@ int gettok() {
             return tok_else;
         if (IdentifierStr == "for")
             return tok_for;
+        if (IdentifierStr == "in")
+            return tok_in;
 
         return tok_identifier;
     }
@@ -76,7 +78,6 @@ int gettok() {
         NumVal = strtod(NumStr.c_str(), nullptr);
         return tok_number;
     }
-
     if (LastChar == '#') {
         // Comment until end of line.
         do
@@ -90,7 +91,6 @@ int gettok() {
     // Check for end of file.  Don't eat the EOF.
     if (LastChar == EOF)
         return tok_eof;
-
     // Otherwise, just return the character as its ascii value.
     int ThisChar = LastChar;
     LastChar = getchar();
