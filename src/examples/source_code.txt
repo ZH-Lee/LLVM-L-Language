@@ -1,0 +1,7 @@
+def f(x){
+    var n = 0;
+    for i in (1,x,1){
+        n = n + 1;
+    }
+    return n;
+};
